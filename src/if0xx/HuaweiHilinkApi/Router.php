@@ -280,6 +280,7 @@ class Router
 	* but for local numbers you can just specifiy the number like you would normally 
 	* call it and it should work, here in Denmark "42952777" etc (mine).
 	* Message parameter got the normal SMS restrictions you know and love.
+	* Note: Will return true if message is successfully sent, false on error.
 	* @return boolean
 	*/
 	public function sendSms($receiver, $message)
@@ -307,7 +308,21 @@ class Router
 		$xml = $this->http->postXml($this->getUrl('api/sms/send-sms'), $sendSmsXml);
 		$obj = new \SimpleXMLElement($xml);
 		//Simple check if login is OK.
-		return ((string)$obj == 'OK');
+		if ((string)$obj != 'OK')
+		{
+			return false;
+		}
+
+		//Check Sms status
+		$obj = $this->generalizedGet('api/sms/send-status');
+		if(property_exists($obj, 'FailPhone'))
+		{
+			if (in_array($receiver, explode(",", $obj->FailPhone)))
+			{
+				return false;
+			}
+		}
+		return true;
 	}
 
 	/**
